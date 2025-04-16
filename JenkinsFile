@@ -2,11 +2,14 @@ pipeline {
   agent any
 
   environment {
-    DOCKER_CREDENTIALS = credentials('dockerhub-credentials')
+    // Use Jenkins credentials plugin to inject DockerHub credentials
+    DOCKER_CREDENTIALS = credentials('docker-credentials')
     DOCKER_USER = "${DOCKER_CREDENTIALS_USR}"
     DOCKER_PASS = "${DOCKER_CREDENTIALS_PSW}"
-    REPO_BACKEND = "${DOCKER_CREDENTIALS_USR}/hotstar-backend"
-    REPO_FRONTEND = "${DOCKER_CREDENTIALS_USR}/hotstar-frontend"
+    
+    // Define image repos
+    REPO_BACKEND = "${DOCKER_USER}/hotstar-backend:latest"
+    REPO_FRONTEND = "${DOCKER_USER}/hotstar-frontend:latest"
   }
 
   stages {
@@ -26,36 +29,37 @@ pipeline {
 
     stage('Static Analysis') {
       steps {
-        sh 'echo "Static analysis for backend and frontend..."'
+        echo 'Running static code analysis...'
       }
     }
 
     stage('Build & Push Docker Images') {
       steps {
-        sh '''
-          docker build -t $REPO_BACKEND ./backend
-          docker build -t $REPO_FRONTEND ./frontend
-          echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-          docker push $REPO_BACKEND
-          docker push $REPO_FRONTEND
-        '''
+        script {
+          sh '''
+            echo "Building backend image..."
+            docker build -t $REPO_BACKEND ./backend
+
+            echo "Building frontend image..."
+            docker build -t $REPO_FRONTEND ./frontend
+
+            echo "Logging into DockerHub..."
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+
+            echo "Pushing backend image..."
+            docker push $REPO_BACKEND
+
+            echo "Pushing frontend image..."
+            docker push $REPO_FRONTEND
+          '''
+        }
       }
     }
 
     stage('Update Manifests') {
       steps {
         sh '''
+          echo "Updating Kubernetes manifests..."
+
           sed -i "s|image: .*hotstar-backend.*|image: $REPO_BACKEND|" manifests/backend-deployment.yaml
-          sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment.yaml
-          
-          git config user.name "rohsun"
-          git config user.email "rohith.sunkari13@gmail.com"
-          git pull origin main
-          git add manifests/*.yaml
-          git commit -m "CI: Update image tags"
-          git push origin main
-        '''
-      }
-    }
-  }
-}
+          sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment_
