@@ -36,7 +36,7 @@ pipeline {
     stage('Build & Push Docker Images') {
       steps {
         script {
-          sh '''
+          sh '''#!/bin/bash
             echo "Building backend image..."
             docker build -t $REPO_BACKEND ./backend
 
@@ -58,8 +58,8 @@ pipeline {
 
     stage('Update Manifests') {
       steps {
-        sh '''
+        sh '''#!/bin/bash
           echo "Updating Kubernetes manifests..."
 
           sed -i "s|image: .*hotstar-backend.*|image: $REPO_BACKEND|" manifests/backend-deployment.yaml
-          sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment_
+          sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment.yaml_
