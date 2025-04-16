@@ -1,0 +1,47 @@
+pipeline {
+  agent any
+  environment {
+    DOCKER_USER = 'docker-credentials'
+    REPO_BACKEND = "${DOCKER_USER}/hotstar-backend"
+    REPO_FRONTEND = "${DOCKER_USER}/hotstar-frontend"
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        git 'https://github.com/Rohsun/Hotstarapplication-deploy'
+      }
+    }
+
+    stage('Static Analysis') {
+      steps {
+        sh 'echo "Static analysis for backend and frontend..."'
+      }
+    }
+
+    stage('Build & Push Docker Images') {
+      steps {
+        sh 'docker build -t $REPO_BACKEND ./backend'
+        sh 'docker build -t $REPO_FRONTEND ./frontend'
+        sh 'docker login -u $DOCKER_USER -p $DOCKER_PASS'
+        sh 'docker push $REPO_BACKEND'
+        sh 'docker push $REPO_FRONTEND'
+      }
+    }
+
+    stage('Update Manifests') {
+      steps {
+        sh '''
+          sed -i "s|image: .*hotstar-backend.*|image: $REPO_BACKEND|" manifests/backend-deployment.yaml
+          sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment.yaml
+          git config user.name "jenkins"
+          git config user.email "jenkins@ci"
+          git add manifests/*.yaml
+          git commit -m "CI: Update image tags"
+          git push origin main
+        '''
+      }
+    }
+  }
+}
+
