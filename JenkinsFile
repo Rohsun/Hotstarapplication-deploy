@@ -62,4 +62,21 @@ pipeline {
           echo "Updating Kubernetes manifests..."
 
           sed -i "s|image: .*hotstar-backend.*|image: $REPO_BACKEND|" manifests/backend-deployment.yaml
-          sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment.yaml_
+          sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment.yaml
+
+          git config user.name "jenkins"
+          git config user.email "jenkins@ci"
+          git pull origin main
+          git add manifests/*.yaml
+          
+          if git diff-index --quiet HEAD --; then
+            echo "No changes to commit."
+          else
+            git commit -m "CI: Update image tags"
+            git push origin main
+          fi
+        '''
+      }
+    }
+  }
+}
