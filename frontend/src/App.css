@@ -1,0 +1,35 @@
+.App {
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+.video-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.video-item {
+  margin: 20px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  width: 250px;
+  text-align: center;
+}
+
+.video-item h3 {
+  font-size: 18px;
+  color: #333;
+}
+
+.video-item a {
+  color: #ff4500;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.video-item a:hover {
+  text-decoration: underline;
+}
+
