@@ -1,15 +1,26 @@
 pipeline {
   agent any
+
   environment {
-    DOCKER_USER = 'docker-credentials'
-    REPO_BACKEND = "${DOCKER_USER}/hotstar-backend"
-    REPO_FRONTEND = "${DOCKER_USER}/hotstar-frontend"
+    DOCKER_CREDENTIALS = credentials('dockerhub-creds')
+    DOCKER_USER = "${DOCKER_CREDENTIALS_USR}"
+    DOCKER_PASS = "${DOCKER_CREDENTIALS_PSW}"
+    REPO_BACKEND = "${DOCKER_CREDENTIALS_USR}/hotstar-backend"
+    REPO_FRONTEND = "${DOCKER_CREDENTIALS_USR}/hotstar-frontend"
   }
 
   stages {
+
     stage('Checkout') {
       steps {
-        git 'https://github.com/Rohsun/Hotstarapplication-deploy', branch 'main'
+        checkout([
+          $class: 'GitSCM',
+          branches: [[name: '*/main']],
+          userRemoteConfigs: [[
+            url: 'https://github.com/Rohsun/Hotstarapplication-deploy',
+            credentialsId: 'github-credentials'
+          ]]
+        ])
       }
     }
 
@@ -21,11 +32,13 @@ pipeline {
 
     stage('Build & Push Docker Images') {
       steps {
-        sh 'docker build -t $REPO_BACKEND ./backend'
-        sh 'docker build -t $REPO_FRONTEND ./frontend'
-        sh 'docker login -u $DOCKER_USER -p $DOCKER_PASS'
-        sh 'docker push $REPO_BACKEND'
-        sh 'docker push $REPO_FRONTEND'
+        sh '''
+          docker build -t $REPO_BACKEND ./backend
+          docker build -t $REPO_FRONTEND ./frontend
+          echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+          docker push $REPO_BACKEND
+          docker push $REPO_FRONTEND
+        '''
       }
     }
 
@@ -34,8 +47,10 @@ pipeline {
         sh '''
           sed -i "s|image: .*hotstar-backend.*|image: $REPO_BACKEND|" manifests/backend-deployment.yaml
           sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment.yaml
-          git config user.name "jenkins"
-          git config user.email "jenkins@ci"
+          
+          git config user.name "rohsun"
+          git config user.email "rohith.sunkari13@gmail.com"
+          git pull origin main
           git add manifests/*.yaml
           git commit -m "CI: Update image tags"
           git push origin main
@@ -44,4 +59,3 @@ pipeline {
     }
   }
 }
-
