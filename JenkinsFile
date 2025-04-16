@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   environment {
-    DOCKER_CREDENTIALS = credentials('dockerhub-creds')
+    DOCKER_CREDENTIALS = credentials('dockerhub-credentials')
     DOCKER_USER = "${DOCKER_CREDENTIALS_USR}"
     DOCKER_PASS = "${DOCKER_CREDENTIALS_PSW}"
     REPO_BACKEND = "${DOCKER_CREDENTIALS_USR}/hotstar-backend"
