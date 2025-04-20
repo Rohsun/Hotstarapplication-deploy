@@ -1,1 +1,1 @@
-This project specifies deployment of hotstar app on eks cluster
+This project specifies deployment of hotstar app on eks cluster..
