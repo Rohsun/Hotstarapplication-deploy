@@ -2,12 +2,12 @@ pipeline {
   agent any
 
   environment {
-    // Use Jenkins credentials plugin to inject DockerHub credentials
+    // DockerHub credentials stored in Jenkins credentials store
     DOCKER_CREDENTIALS = credentials('docker-credentials')
     DOCKER_USER = "${DOCKER_CREDENTIALS_USR}"
     DOCKER_PASS = "${DOCKER_CREDENTIALS_PSW}"
-    
-    // Define image repos
+
+    // Docker image tags
     REPO_BACKEND = "${DOCKER_USER}/hotstar-backend:latest"
     REPO_FRONTEND = "${DOCKER_USER}/hotstar-frontend:latest"
   }
@@ -29,7 +29,7 @@ pipeline {
 
     stage('Static Analysis') {
       steps {
-        echo 'Running static code analysis...'
+        echo 'Running static code analysis... (Placeholder)'
       }
     }
 
@@ -37,11 +37,16 @@ pipeline {
       steps {
         script {
           sh '''#!/bin/bash
+            set -e  # Exit on error
+
             echo "Building backend image..."
             docker build -t $REPO_BACKEND ./backend
 
             echo "Building frontend image..."
             docker build -t $REPO_FRONTEND ./frontend
+
+            echo "Verifying Docker images built..."
+            docker images
 
             echo "Logging into DockerHub..."
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
@@ -59,7 +64,9 @@ pipeline {
     stage('Update Manifests') {
       steps {
         sh '''#!/bin/bash
-          echo "Updating Kubernetes manifests..."
+          set -e
+
+          echo "Updating Kubernetes manifests with new image tags..."
 
           sed -i "s|image: .*hotstar-backend.*|image: $REPO_BACKEND|" manifests/backend-deployment.yaml
           sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment.yaml
@@ -68,7 +75,7 @@ pipeline {
           git config user.email "jenkins@ci"
           git pull origin main
           git add manifests/*.yaml
-          
+
           if git diff-index --quiet HEAD --; then
             echo "No changes to commit."
           else
