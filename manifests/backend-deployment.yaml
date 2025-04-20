@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backend-deployment
+  namespace: hotstar 
 spec:
   replicas: 2
   selector:
@@ -21,7 +22,8 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend-service
+  name: backend-service 
+  namespace: hotstar 
 spec:
   selector:
     app: backend
