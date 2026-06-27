@@ -24,7 +24,7 @@ spec:
 
       - name: backend
 
-        image: rohsun/hotstar-backend:99
+        image: rohsun/hotstar-backend:100
 
         ports:
         - containerPort: 8000
