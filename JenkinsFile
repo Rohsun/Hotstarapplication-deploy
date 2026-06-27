@@ -103,45 +103,46 @@ pipeline {
 
     stage('Update Manifests') {
 
-      steps {
+  steps {
 
-        sh '''
+    withCredentials([usernamePassword(
+      credentialsId: 'github-credentials',
+      usernameVariable: 'GIT_USER',
+      passwordVariable: 'GIT_PASS'
+    )]) {
 
-        sed -i "s|image: .*hotstar-backend.*|image: $REPO_BACKEND|" manifests/backend-deployment.yaml
+      sh '''
 
-
-        sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment.yaml
-
-
-
-        git config user.name "jenkins"
-
-        git config user.email "jenkins@ci"
+      git config user.name "jenkins"
+      git config user.email "jenkins@ci"
 
 
-
-        git checkout -B main
-
+      git checkout -B main
 
 
-        git add manifests/*.yaml
+      git pull origin main --rebase
 
 
-
-        git commit -m "Update images to build $BUILD_NUMBER" || true
-
+      sed -i "s|image: .*hotstar-backend.*|image: $REPO_BACKEND|" manifests/backend-deployment.yaml
 
 
-        git push https://${GITHUB_TOKEN}@github.com/Rohsun/Hotstarapplication-deploy main
+      sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment.yaml
 
 
-        '''
+      git add manifests/*.yaml
 
-      }
+
+      git commit -m "Update images to build $BUILD_NUMBER" || true
+
+
+      git push https://$GIT_USER:$GIT_PASS@github.com/Rohsun/Hotstarapplication-deploy main
+
+
+      '''
 
     }
 
-
   }
 
+}
 }
