@@ -22,7 +22,7 @@ pipeline {
     SONAR_SCANNER = "/opt/sonar-scanner/bin/sonar-scanner"
 
 
-    GITHUB_TOKEN = credentials('github-token')
+    GITHUB_TOKEN = credentials('github-credentials')
 
   }
 
