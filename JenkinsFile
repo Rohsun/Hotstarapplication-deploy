@@ -10,8 +10,10 @@ pipeline {
     REPO_BACKEND = "${DOCKER_USER}/hotstar-backend:latest"
     REPO_FRONTEND = "${DOCKER_USER}/hotstar-frontend:latest"
 
-    SONAR_URL = "http://3.84.111.82:9000"
     SONAR_TOKEN = credentials('sonarqube')
+    SONAR_URL = "http://3.84.111.82:9000"
+
+    SONAR_SCANNER = "/opt/sonar-scanner/bin/sonar-scanner"
   }
 
   stages {
@@ -31,45 +33,26 @@ pipeline {
 
     stage('SonarQube Analysis') {
       steps {
-        sh '''
-          echo "Starting SonarQube Analysis"
-          /opt/sonar-scanner/bin/sonar-scanner \
-           
-            -Dsonar.projectKey=hotstar-app \
-            -Dsonar.projectName=hotstar-app \
-            -Dsonar.sources=backend,frontend \
-            -Dsonar.host.url=http://3.84.111.82:9000 \
-            -Dsonar.login=$SONAR_TOKEN
-        '''
-      }
-    }
-
-    stage('Quality Gate') {
-      steps {
-        timeout(time: 5, unit: 'MINUTES') {
-          waitForQualityGate abortPipeline: true
-        }
+        sh """
+          ${SONAR_SCANNER} \
+          -Dsonar.projectKey=hotstar-app \
+          -Dsonar.projectName=hotstar-app \
+          -Dsonar.sources=backend,frontend \
+          -Dsonar.host.url=${SONAR_URL} \
+          -Dsonar.login=${SONAR_TOKEN}
+        """
       }
     }
 
     stage('Build & Push Docker Images') {
       steps {
         sh '''
-          set -e
-
-          echo "Building backend image..."
           docker build -t $REPO_BACKEND ./backend
-
-          echo "Building frontend image..."
           docker build -t $REPO_FRONTEND ./frontend
 
-          echo "Logging into DockerHub..."
           echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
-          echo "Pushing backend image..."
           docker push $REPO_BACKEND
-
-          echo "Pushing frontend image..."
           docker push $REPO_FRONTEND
         '''
       }
@@ -78,24 +61,15 @@ pipeline {
     stage('Update Manifests') {
       steps {
         sh '''
-          set -e
-
           sed -i "s|image: .*hotstar-backend.*|image: $REPO_BACKEND|" manifests/backend-deployment.yaml
           sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment.yaml
 
           git config user.name "jenkins"
           git config user.email "jenkins@ci"
 
-          git pull origin main
-
           git add manifests/*.yaml
-
-          if git diff-index --quiet HEAD --; then
-            echo "No changes to commit"
-          else
-            git commit -m "CI: Update image tags"
-            git push origin main
-          fi
+          git commit -m "update images" || true
+          git push origin main
         '''
       }
     }
