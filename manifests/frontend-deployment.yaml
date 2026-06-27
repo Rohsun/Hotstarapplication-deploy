@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: rohsun/hotstar-frontend:45
+        image: rohsun/hotstar-frontend:46
         ports:
         - containerPort: 80
 ---
