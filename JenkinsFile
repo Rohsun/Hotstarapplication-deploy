@@ -33,8 +33,8 @@ pipeline {
       steps {
         sh '''
           echo "Starting SonarQube Analysis"
-
-          sonar-scanner \
+          /opt/sonar-scanner/bin/sonar-scanner \
+           
             -Dsonar.projectKey=hotstar-app \
             -Dsonar.projectName=hotstar-app \
             -Dsonar.sources=backend,frontend \
