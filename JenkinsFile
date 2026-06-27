@@ -29,9 +29,6 @@ pipeline {
       }
     }
 
-    # =========================
-    # SONARQUBE ANALYSIS
-    # =========================
     stage('SonarQube Analysis') {
       steps {
         sh '''
@@ -56,9 +53,6 @@ pipeline {
       }
     }
 
-    # =========================
-    # BUILD & PUSH DOCKER IMAGES
-    # =========================
     stage('Build & Push Docker Images') {
       steps {
         sh '''
@@ -82,9 +76,6 @@ pipeline {
       }
     }
 
-    # =========================
-    # UPDATE K8s MANIFESTS
-    # =========================
     stage('Update Manifests') {
       steps {
         sh '''
