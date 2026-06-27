@@ -18,8 +18,14 @@ pipeline {
     SONAR_TOKEN = credentials('sonarqube')
 
     SONAR_URL = "http://3.84.111.82:9000"
-    GITHUB_TOKEN = credentials('github-credentials')
+
     SONAR_SCANNER = "/opt/sonar-scanner/bin/sonar-scanner"
+
+
+    GIT_CREDENTIALS = credentials('github-credentials')
+
+    GIT_USER = "${GIT_CREDENTIALS_USR}"
+    GIT_PSWD = "${GIT_CREDENTIALS_PSW}"
 
   }
 
@@ -102,50 +108,35 @@ pipeline {
 
       steps {
 
-        withCredentials([
-          usernamePassword(
-            credentialsId: 'github-credentials',
-            usernameVariable: 'GIT_USER',
-            passwordVariable: 'GIT_PASS'
-          )
-        ]) {
+        sh '''
+
+        git config user.name "jenkins"
+
+        git config user.email "jenkins@ci"
 
 
-          sh '''
-
-          git config user.name "jenkins"
-
-          git config user.email "jenkins@ci"
+        git checkout -B main
 
 
-          git checkout -B main
+        git pull origin main --rebase
 
 
-          git pull origin main --rebase
+        sed -i "s|image: .*hotstar-backend.*|image: $REPO_BACKEND|" manifests/backend-deployment.yaml
 
 
-
-          sed -i "s|image: .*hotstar-backend.*|image: $REPO_BACKEND|" manifests/backend-deployment.yaml
-
-
-          sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment.yaml
+        sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment.yaml
 
 
-
-          git add manifests/*.yaml
-
+        git add manifests/*.yaml
 
 
-          git commit -m "Update images to build $BUILD_NUMBER" || echo "No changes"
+        git commit -m "Update images to build $BUILD_NUMBER" || echo "No changes"
 
 
+        git push https://$GIT_USER:$GIT_PSWD@github.com/Rohsun/Hotstarapplication-deploy main
 
-          git push https://$GIT_USER:$GIT_PASS@github.com/Rohsun/Hotstarapplication-deploy main
 
-
-          '''
-
-        }
+        '''
 
       }
 
