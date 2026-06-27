@@ -18,11 +18,8 @@ pipeline {
     SONAR_TOKEN = credentials('sonarqube')
 
     SONAR_URL = "http://3.84.111.82:9000"
-
-    SONAR_SCANNER = "/opt/sonar-scanner/bin/sonar-scanner"
-
-
     GITHUB_TOKEN = credentials('github-credentials')
+    SONAR_SCANNER = "/opt/sonar-scanner/bin/sonar-scanner"
 
   }
 
@@ -103,46 +100,59 @@ pipeline {
 
     stage('Update Manifests') {
 
-  steps {
+      steps {
 
-    withCredentials([usernamePassword(
-      credentialsId: 'github-credentials',
-      usernameVariable: 'GIT_USER',
-      passwordVariable: 'GIT_PASS'
-    )]) {
-
-      sh '''
-
-      git config user.name "jenkins"
-      git config user.email "jenkins@ci"
+        withCredentials([
+          usernamePassword(
+            credentialsId: 'github-credentials',
+            usernameVariable: 'GIT_USER',
+            passwordVariable: 'GIT_PASS'
+          )
+        ]) {
 
 
-      git checkout -B main
+          sh '''
+
+          git config user.name "jenkins"
+
+          git config user.email "jenkins@ci"
 
 
-      git pull origin main --rebase
+          git checkout -B main
 
 
-      sed -i "s|image: .*hotstar-backend.*|image: $REPO_BACKEND|" manifests/backend-deployment.yaml
+          git pull origin main --rebase
 
 
-      sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment.yaml
+
+          sed -i "s|image: .*hotstar-backend.*|image: $REPO_BACKEND|" manifests/backend-deployment.yaml
 
 
-      git add manifests/*.yaml
+          sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment.yaml
 
 
-      git commit -m "Update images to build $BUILD_NUMBER" || true
+
+          git add manifests/*.yaml
 
 
-      git push https://$GIT_USER:$GIT_PASS@github.com/Rohsun/Hotstarapplication-deploy main
+
+          git commit -m "Update images to build $BUILD_NUMBER" || echo "No changes"
 
 
-      '''
+
+          git push https://$GIT_USER:$GIT_PASS@github.com/Rohsun/Hotstarapplication-deploy main
+
+
+          '''
+
+        }
+
+      }
 
     }
 
+
   }
 
-}
+
 }
