@@ -2,20 +2,27 @@ pipeline {
   agent any
 
   environment {
-    // DockerHub credentials stored in Jenkins credentials store
+
     DOCKER_CREDENTIALS = credentials('docker-credentials')
     DOCKER_USER = "${DOCKER_CREDENTIALS_USR}"
     DOCKER_PASS = "${DOCKER_CREDENTIALS_PSW}"
 
-    // Docker image tags
     REPO_BACKEND = "${DOCKER_USER}/hotstar-backend:latest"
     REPO_FRONTEND = "${DOCKER_USER}/hotstar-frontend:latest"
+
+    SONAR_TOKEN = credentials('sonarqube')
+    SONAR_URL = "http://3.84.111.82:9000"
+
   }
+
 
   stages {
 
+
     stage('Checkout') {
+
       steps {
+
         checkout([
           $class: 'GitSCM',
           branches: [[name: '*/main']],
@@ -24,66 +31,115 @@ pipeline {
             credentialsId: 'github-credentials'
           ]]
         ])
+
       }
+
     }
 
-    stage('Static Analysis') {
+
+    stage('SonarQube Analysis') {
+
       steps {
-        echo 'Running static code analysis... (Placeholder)'
+
+        sh '''
+        echo "Starting SonarQube Analysis"
+
+        sonar-scanner \
+        -Dsonar.projectKey=hotstar-app \
+        -Dsonar.projectName=hotstar-app \
+        -Dsonar.sources=backend,frontend \
+        -Dsonar.host.url=$SONAR_URL \
+        -Dsonar.token=$SONAR_TOKEN
+
+        '''
+
       }
+
     }
+
+
 
     stage('Build & Push Docker Images') {
+
       steps {
+
         script {
-          sh '''#!/bin/bash
-            set -e  # Exit on error
 
-            echo "Building backend image..."
-            docker build -t $REPO_BACKEND ./backend
-
-            echo "Building frontend image..."
-            docker build -t $REPO_FRONTEND ./frontend
-
-            echo "Verifying Docker images built..."
-            docker images
-
-            echo "Logging into DockerHub..."
-            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-
-            echo "Pushing backend image..."
-            docker push $REPO_BACKEND
-
-            echo "Pushing frontend image..."
-            docker push $REPO_FRONTEND
-          '''
-        }
-      }
-    }
-
-    stage('Update Manifests') {
-      steps {
-        sh '''#!/bin/bash
+          sh '''
           set -e
 
-          echo "Updating Kubernetes manifests with new image tags..."
+          echo "Building backend image..."
 
-          sed -i "s|image: .*hotstar-backend.*|image: $REPO_BACKEND|" manifests/backend-deployment.yaml
-          sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment.yaml
+          docker build -t $REPO_BACKEND ./backend
 
-          git config user.name "jenkins"
-          git config user.email "jenkins@ci"
-          git pull origin main
-          git add manifests/*.yaml
 
-          if git diff-index --quiet HEAD --; then
-            echo "No changes to commit."
-          else
-            git commit -m "CI: Update image tags"
-            git push origin main
-          fi
-        '''
+          echo "Building frontend image..."
+
+          docker build -t $REPO_FRONTEND ./frontend
+
+
+          echo "Logging into DockerHub..."
+
+          echo "$DOCKER_PASS" | docker login \
+          -u "$DOCKER_USER" \
+          --password-stdin
+
+
+          docker push $REPO_BACKEND
+
+          docker push $REPO_FRONTEND
+
+          '''
+
+        }
+
       }
+
     }
+
+
+
+    stage('Update Manifests') {
+
+      steps {
+
+        sh '''
+
+        sed -i "s|image: .*hotstar-backend.*|image: $REPO_BACKEND|" manifests/backend-deployment.yaml
+
+        sed -i "s|image: .*hotstar-frontend.*|image: $REPO_FRONTEND|" manifests/frontend-deployment.yaml
+
+
+        git config user.name "jenkins"
+        git config user.email "jenkins@ci"
+
+
+        git pull origin main
+
+
+        git add manifests/*.yaml
+
+
+        if git diff-index --quiet HEAD --;
+
+        then
+
+          echo "No changes"
+
+        else
+
+          git commit -m "CI: Update image tags"
+
+          git push origin main
+
+        fi
+
+        '''
+
+      }
+
+    }
+
   }
+
 }
