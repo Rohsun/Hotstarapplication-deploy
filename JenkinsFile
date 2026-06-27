@@ -130,7 +130,7 @@ pipeline {
         git add manifests/*.yaml
 
 
-        git commit -m "Update images to build $BUILD_NUMBER" || echo "No changes"
+        git commit -m "Update images to build $BUILD_NUMBER [skip ci]" || echo "No changes"
 
 
         git push https://$GIT_USER:$GIT_PSWD@github.com/Rohsun/Hotstarapplication-deploy main
